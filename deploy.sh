@@ -418,12 +418,9 @@ function retry_terraform {
     monitor_loop
 
     # Check if errors exist
-    mapfile -t errors < <(grep "Error:" "$LOG_FILE" | sort | uniq)
-
-    if [ -z "${errors}" ]; then
-      break
-    else
-      log "${errors[@]}"
+    if grep -c "Error:" "$LOG_FILE" >/dev/null; then
+      log "Encountered below errors:"
+      grep "Error:" "$LOG_FILE" | sort | uniq
 
       # Handle unknown provisioning errors
       for error in "${errors[@]}"; do
@@ -438,6 +435,7 @@ function retry_terraform {
           fi
         fi
       done
+
       # All tries exhausted
       if [[ $i -eq $tries ]]; then
         error "Terraform command failed after $tries attempts! Please check the log files"
@@ -445,6 +443,8 @@ function retry_terraform {
       # Nothing to do other than retry
       warn "Issues were seen while running the terraform command. Attempting to run again..."
       sleep $SLEEP_TIME
+    else
+      break
     fi
   done
   log "Completed running the terraform command."
